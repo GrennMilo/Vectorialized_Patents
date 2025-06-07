@@ -12,6 +12,7 @@ A comprehensive solution for processing, analyzing, and searching patent documen
 - [Core Components](#core-components)
 - [Patent Processing Pipeline](#patent-processing-pipeline)
 - [Component Extraction Details](#component-extraction-details)
+- [Code Examples](#code-examples)
 - [Web Application](#web-application)
 - [Customization](#customization)
 - [Contributing](#contributing)
@@ -47,12 +48,12 @@ The system follows a modular architecture with three main phases:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  PDF Files  │ → │  OCR & Text  │ → │  Component  │ → │  Structured  │
-│             │    │  Extraction  │    │  Extraction │    │     Data    │
+│  PDF Files  │ →  │  OCR & Text │  → │  Component  │  → │  Structured │
+│             │    │  Extraction │    │  Extraction │    │     Data    │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
                                                                 ↓
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Search    │ ← │ FAISS Index  │ ← │   Vector    │ ← │    Text     │
+│   Search    │ ←  │ FAISS Index  │ ← │   Vector    │  ← │    Text     │
 │     UI      │    │             │    │  Embeddings │    │   Chunking  │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
@@ -72,8 +73,8 @@ The system follows a modular architecture with three main phases:
 
 1. Clone this repository
    ```bash
-   git clone https://github.com/GrennMilo/Vactorialized_Patents.git
-   cd Vactorialized_Patents
+   git clone https://github.com/GrennMilo/Vectorialized_Patents.git
+   cd Vectorialized_Patents
    ```
 
 2. Install Python dependencies
@@ -125,19 +126,25 @@ Process all patents in the Patents directory:
 
 ```bash
 # Linux/macOS
-python process_patents.py
+python process_all_patents.py
 
 # Windows
 process_all_patents.bat
 ```
 
+Or directly with Python:
+```bash
+python process_all_patents.py
+```
+
 Available options:
 ```
---input, -i DIR     Directory containing patent PDFs (default: Patents)
---output, -o DIR    Directory to save results (default: Results)
---workers, -w NUM   Maximum number of worker processes
---ocr-only          Only perform OCR without component extraction
---limit, -l NUM     Maximum number of patents to process
+--pdf-dir DIR       Directory containing patent PDFs (default: Patents)
+--output-dir DIR    Directory to save results (default: Results)
+--images-dir DIR    Directory to save extracted images (default: Results/Patent_Images)
+--dpi NUM           DPI for image conversion (default: 300)
+--limit NUM         Maximum number of patents to process (default: process all)
+--clean             Clean previous results before processing
 ```
 
 ### Web Application
@@ -159,9 +166,10 @@ vactorialized_patents/
 ├── Patents_Vectorizer.py            # Patent OCR and vectorization tool
 ├── patent_component_extractor.py    # Extract patent components from text
 ├── process_patent.py                # Process a single patent PDF
-├── process_patents.py               # Process multiple patent PDFs
+├── process_all_patents.py           # Process multiple patent PDFs
 ├── process_patent.bat               # Windows batch file for processing a patent
 ├── process_all_patents.bat          # Windows batch file for processing all patents
+├── run_app.bat                      # Windows batch file for starting the web app
 ├── requirements.txt                 # Python dependencies
 │
 ├── Patents/                         # Directory containing patent PDF files
@@ -223,14 +231,14 @@ Extracts structured components from patent OCR text:
 | Figures | Descriptions and captions of diagrams | Figure reference detection |
 | Body Text | Main technical description | Section boundary detection |
 
-### process_patent.py / process_patents.py
+### process_patent.py / process_all_patents.py
 
 Patent processing scripts for single or batch processing:
 
 | Script | Function | Parallelization |
 |--------|----------|----------------|
 | `process_patent.py` | Single patent processing | N/A |
-| `process_patents.py` | Batch processing | Process pool executor |
+| `process_all_patents.py` | Batch processing | Sequential processing with error handling |
 
 ## Patent Processing Pipeline
 
@@ -256,7 +264,7 @@ The patent processing pipeline consists of the following steps:
    - Generate embeddings using sentence-transformers
    - Create FAISS index for similarity search
 
-# Component Extraction Details
+## Component Extraction Details
 
 The component extraction process uses a combination of techniques:
 
@@ -277,6 +285,105 @@ The component extraction process uses a combination of techniques:
 'abstract': r'(?:ABSTRACT|^\(57\)\s+ABSTRACT)[\s\n]+(.+?)(?=\n\s*(?:[0-9]+\s+Claims|BRIEF DESCRIPTION|DETAILED DESCRIPTION|BACKGROUND|\[FIGURE\]|FIG\.)|\n\s*$)',
 'claims_start': r'(?:^|\n)(?:What is claimed is:|I claim:|We claim:|Claims?:)(?:\s*\n|\s+)',
 'figures': r'(?:FIG\.?\s*[0-9]+[A-Za-z]*|^\[FIGURE\]).*?(?=FIG\.?\s*[0-9]+[A-Za-z]*|\[FIGURE\]|\n\n|$)',
+```
+
+## Code Examples
+
+### Processing a Patent with OCR
+
+```python
+# Extract images from a PDF patent
+from process_all_patents import extract_images_from_pdf
+
+pdf_path = "Patents/US12345678.pdf"
+output_dir = "Results/Patent_Images"
+image_paths, img_dir = extract_images_from_pdf(pdf_path, output_dir, dpi=300)
+
+# Apply OCR to the extracted images
+from process_all_patents import apply_ocr_to_images
+
+text = apply_ocr_to_images(image_paths)
+print(f"Extracted {len(text)} characters of text")
+```
+
+### Extracting Components from Patent Text
+
+```python
+# Extract structured components from patent text
+from patent_component_extractor import PatentComponentExtractor
+
+# Initialize the extractor
+extractor = PatentComponentExtractor()
+
+# Extract components from text
+with open("Results/US12345678.txt", "r", encoding="utf-8") as f:
+    text = f.read()
+
+components = extractor.extract_components(text, "US12345678")
+
+# Access the extracted components
+print(f"Patent Number: {components['patent_number']}")
+print(f"Title: {components['title']}")
+print(f"Abstract: {components['abstract'][:100]}...")
+print(f"Claims: {len(components['claims'])}")
+print(f"Figures: {len(components['figures'])}")
+```
+
+### Searching the Patent Database
+
+```python
+# Search for similar patents
+from Patents_Vectorizer import PatentOCRVectorizer
+
+# Initialize the vectorizer
+vectorizer = PatentOCRVectorizer()
+
+# Search for patents related to a query
+results = vectorizer.search_patents("renewable energy storage system", k=5)
+
+# Display the results
+for i, result in enumerate(results):
+    print(f"Result {i+1}: {result['patent_id']}")
+    print(f"Similarity: {result['similarity']:.3f}")
+    print(f"Text Preview: {result['text'][:100]}...")
+    print("-" * 40)
+```
+
+### Processing Patents in Batch
+
+```python
+# Process all patents in a directory
+from process_all_patents import process_all_patents
+
+# Process all patents with default settings
+success = process_all_patents(
+    pdf_dir='Patents',
+    output_dir='Results',
+    dpi=300
+)
+
+if success:
+    print("All patents processed successfully!")
+else:
+    print("Some patents could not be processed.")
+```
+
+### Using the Web Application
+
+```python
+# Import the Flask application
+from app import app
+
+# Configure the application
+app.config.update(
+    DEBUG=True,
+    RESULTS_DIR='Results',
+    IMAGES_DIR='Results/Patent_Images'
+)
+
+# Run the application
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
 ```
 
 ## Web Application
