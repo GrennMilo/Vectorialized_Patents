@@ -1,15 +1,17 @@
-# Patent files
+# Patent PDF files
 Patents/*.pdf
 Patents/**/*.pdf
 
-# OCR results and processed data
-Results/*.txt
-Results/*.csv
-Results/*.npy
-Results/*.faiss
-Results/*_chunks.txt
-Results/Patent_Images/
-Results/Components/
+# Results directory contents
+Results/*
+Results/Patent_Images/*
+Results/Components/*
+
+# But keep .gitkeep files
+!Results/.gitkeep
+!Results/Patent_Images/.gitkeep
+!Results/Components/.gitkeep
+!Patents/.gitkeep
 
 # Python cache files
 __pycache__/
@@ -17,7 +19,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -29,14 +30,19 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# Environment files
+.env
+.venv
+env/
 venv/
 ENV/
-env/
+env.bak/
+venv.bak/
 
 # IDE files
 .idea/
@@ -44,12 +50,24 @@ env/
 *.swp
 *.swo
 *~
-
-# OS generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db 
+
+# Log files
+*.log
+logs/
+log/
+
+# Temporary files
+temp/
+tmp/
+.temp/
+.tmp/
+
+# NLTK data
+nltk_data/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Allow gitkeep files in empty directories
+!.gitkeep 

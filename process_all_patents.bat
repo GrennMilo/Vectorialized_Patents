@@ -1,34 +1,53 @@
 @echo off
-echo Patent Batch Processing Tool
-echo --------------------------
-echo This tool will process all patent PDF files in the Patents directory.
+title Patent Processing System
+echo =====================================
+echo     PATENT PROCESSING SYSTEM
+echo =====================================
+echo.
+echo This will process all PDF files in the Patents folder,
+echo extract images, apply OCR, and create a vector database.
 echo.
 
-REM Check if Python is installed
-python --version 2>NUL
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Python is not installed or not in the PATH.
-    echo Please install Python 3.7 or higher.
-    pause
-    exit /b 1
+set OPTIONS=
+
+:MENU
+echo Options:
+echo [1] Process all patents
+echo [2] Process with cleanup (delete previous results)
+echo [3] Process limited number of patents
+echo [4] Exit
+echo.
+set /p CHOICE="Enter your choice (1-4): "
+
+if "%CHOICE%"=="1" (
+    set OPTIONS=
+    goto PROCESS
+)
+if "%CHOICE%"=="2" (
+    set OPTIONS=--clean
+    goto PROCESS
+)
+if "%CHOICE%"=="3" (
+    set /p LIMIT="Enter the number of patents to process: "
+    set OPTIONS=--limit %LIMIT%
+    goto PROCESS
+)
+if "%CHOICE%"=="4" (
+    echo Exiting...
+    exit /b 0
 )
 
-echo Starting batch processing of all patents...
+echo Invalid choice, please try again.
+echo.
+goto MENU
+
+:PROCESS
+echo.
+echo Starting patent processing...
 echo.
 
-REM Run the patent processing script for all patents
-python process_patents.py --input Patents --output Results
-
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR: Patent batch processing failed.
-    pause
-    exit /b 1
-)
+python process_all_patents.py %OPTIONS%
 
 echo.
-echo Patent processing completed successfully!
-echo.
-echo You can now explore the extracted components in the Results folder.
-echo.
-pause 
+echo Process completed. Press any key to exit...
+pause > nul 

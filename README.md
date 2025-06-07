@@ -2,7 +2,7 @@
 
 A comprehensive solution for processing, analyzing, and searching patent documents using OCR, vector embeddings, and semantic search.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#features)
 - [System Architecture](#system-architecture)
@@ -17,7 +17,7 @@ A comprehensive solution for processing, analyzing, and searching patent documen
 - [Contributing](#contributing)
 - [License](#license)
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
@@ -31,7 +31,7 @@ A comprehensive solution for processing, analyzing, and searching patent documen
 | **Dark Theme UI** | Minimalist, modern interface designed for readability |
 | **Lightbox Integration** | Zoom and browse patent images with lightbox viewer |
 
-## 🏗️ System Architecture
+## System Architecture
 
 The system follows a modular architecture with three main phases:
 
@@ -57,7 +57,7 @@ The system follows a modular architecture with three main phases:
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 
@@ -97,7 +97,7 @@ The system follows a modular architecture with three main phases:
    mkdir -p Patents Results/Components Results/Patent_Images
    ```
 
-## 🚀 Usage
+## Usage
 
 ### Patent Processing
 
@@ -150,7 +150,7 @@ python app.py
 
 Then open your browser and navigate to `http://localhost:5000`
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 vactorialized_patents/
@@ -196,7 +196,7 @@ vactorialized_patents/
     └── patent.html                  # Patent details page template
 ```
 
-## 🧩 Core Components
+## Core Components
 
 ### Patents_Vectorizer.py
 
@@ -232,7 +232,7 @@ Patent processing scripts for single or batch processing:
 | `process_patent.py` | Single patent processing | N/A |
 | `process_patents.py` | Batch processing | Process pool executor |
 
-## 📊 Patent Processing Pipeline
+## Patent Processing Pipeline
 
 The patent processing pipeline consists of the following steps:
 
@@ -256,7 +256,7 @@ The patent processing pipeline consists of the following steps:
    - Generate embeddings using sentence-transformers
    - Create FAISS index for similarity search
 
-## 📑 Component Extraction Details
+# Component Extraction Details
 
 The component extraction process uses a combination of techniques:
 
@@ -279,7 +279,7 @@ The component extraction process uses a combination of techniques:
 'figures': r'(?:FIG\.?\s*[0-9]+[A-Za-z]*|^\[FIGURE\]).*?(?=FIG\.?\s*[0-9]+[A-Za-z]*|\[FIGURE\]|\n\n|$)',
 ```
 
-## 🌐 Web Application
+## Web Application
 
 The web application provides a user-friendly interface for searching and viewing patents:
 
@@ -300,7 +300,7 @@ The search process follows these steps:
 3. Retrieve top k most similar chunks
 4. Group results by patent and display in ranked order
 
-## 🔧 Customization
+## Customization
 
 ### Search Parameters
 
@@ -336,7 +336,7 @@ self.patterns = {
 }
 ```
 
-## 👥 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -346,11 +346,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [FAISS](https://github.com/facebookresearch/faiss) for efficient similarity search
 - [Sentence-Transformers](https://www.sbert.net/) for text embeddings

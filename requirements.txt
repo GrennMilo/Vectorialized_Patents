@@ -1,15 +1,25 @@
-flask==2.2.3
-sentence-transformers==2.2.2
-faiss-cpu==1.7.4
-pandas==1.5.3
-numpy==1.24.3
-tqdm==4.65.0
-pdf2image==1.16.3
-pillow==9.5.0
-pytesseract==0.3.10
-nltk==3.8.1
-scikit-learn==1.2.2
-matplotlib==3.7.1
-argparse==1.4.0
-concurrent-log-handler==0.9.24
-requests==2.31.0 
+# Core processing libraries
+pdf2image>=1.16.0
+pytesseract>=0.3.10
+Pillow>=9.0.0
+nltk>=3.7
+tqdm>=4.64.0
+
+# Vector embedding and search
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.3  # Use faiss-gpu for GPU acceleration
+
+# Data processing and analysis
+numpy>=1.22.0
+pandas>=1.4.0
+matplotlib>=3.5.0
+scikit-learn>=1.0.0
+
+# Web application
+Flask>=2.0.0
+Werkzeug>=2.0.0
+click>=8.0.0
+
+# Utilities
+regex>=2022.1.18
+python-dotenv>=0.20.0 

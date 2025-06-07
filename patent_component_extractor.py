@@ -1,7 +1,19 @@
+"""
+Patent Component Extractor
+
+This module extracts structured components from patent OCR text, including:
+- Patent number
+- Title
+- Abstract
+- Claims
+- Figures
+- Body text
+"""
+
 import re
 import os
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -10,341 +22,355 @@ logger = logging.getLogger(__name__)
 
 class PatentComponentExtractor:
     """
-    Extract key components from patent OCR text files.
-    
-    This class parses OCR-extracted text from patent documents to identify and
-    extract key components such as:
-    - Patent number
-    - Title
-    - Abstract
-    - Claims
-    - Figures descriptions
-    - Main body text
+    Extract structured components from patent OCR text
     """
     
     def __init__(self):
-        # Patterns for identifying patent sections
+        """Initialize the component extractor with regex patterns."""
         self.patterns = {
             'patent_number': r'US\s*([0-9,]{6,})\s*[A-Z][0-9]',
             'title': r'(?:\(54\)|^54\))\s+(.*?)(?=\(|$)',
             'abstract': r'(?:ABSTRACT|^\(57\)\s+ABSTRACT)[\s\n]+(.+?)(?=\n\s*(?:[0-9]+\s+Claims|BRIEF DESCRIPTION|DETAILED DESCRIPTION|BACKGROUND|\[FIGURE\]|FIG\.)|\n\s*$)',
             'claims_start': r'(?:^|\n)(?:What is claimed is:|I claim:|We claim:|Claims?:)(?:\s*\n|\s+)',
-            'claims_end': r'(?:\n\s*(?:DETAILED DESCRIPTION|DESCRIPTION OF|BACKGROUND|\[FIGURE\]|FIG\.)|\Z)',
             'figures': r'(?:FIG\.?\s*[0-9]+[A-Za-z]*|^\[FIGURE\]).*?(?=FIG\.?\s*[0-9]+[A-Za-z]*|\[FIGURE\]|\n\n|$)',
         }
         
-    def extract_components(self, text: str) -> Dict[str, Any]:
+        # Additional patterns for more advanced extraction
+        self.secondary_patterns = {
+            'patent_number_alt': r'United States Patent\s+([0-9,]+)',
+            'title_alt': r'(?:Title:?|Title of Invention:?)\s+([^\n]+)',
+            'abstract_alt': r'(?:Abstract|Summary)[\s\n]+(.+?)(?=\n\s*Introduction|\n\s*Background|\n\s*Description|\n\s*$)',
+            'body_start': r'(?:DETAILED DESCRIPTION|DESCRIPTION OF (?:THE )?(?:PREFERRED )?EMBODIMENTS?)',
+        }
+    
+    def extract_components(self, text, patent_id=None):
         """
-        Extract all components from patent text.
+        Extract components from patent text
         
         Args:
-            text: OCR-extracted text from a patent document
+            text (str): The OCR-extracted patent text
+            patent_id (str, optional): Patent ID for reference
             
         Returns:
-            Dictionary containing extracted components
+            dict: Dictionary of extracted components
         """
-        # Clean the text first
-        text = self._clean_text(text)
-        
-        # Extract components
         components = {
-            'patent_number': self._extract_patent_number(text),
-            'title': self._extract_title(text),
-            'abstract': self._extract_abstract(text),
-            'claims': self._extract_claims(text),
-            'figures': self._extract_figures(text),
-            'body_text': self._extract_body_text(text)
+            'patent_number': None,
+            'title': None,
+            'abstract': None,
+            'claims': [],
+            'figures': [],
+            'body': None,
         }
+        
+        # Extract patent number
+        components['patent_number'] = self._extract_patent_number(text)
+        
+        # Extract title
+        components['title'] = self._extract_title(text)
+        
+        # Extract abstract
+        components['abstract'] = self._extract_abstract(text)
+        
+        # Extract claims
+        components['claims'] = self._extract_claims(text)
+        
+        # Extract figures
+        components['figures'] = self._extract_figures(text)
+        
+        # Extract body text
+        components['body'] = self._extract_body(text)
+        
+        # Log extraction results
+        patent_ref = patent_id if patent_id else components['patent_number'] or "Unknown Patent"
+        logger.info(f"Extracted components from {patent_ref}:")
+        for component, value in components.items():
+            if isinstance(value, list):
+                logger.info(f"  - {component}: {len(value)} items extracted")
+            elif value:
+                preview = value[:50] + "..." if len(value) > 50 else value
+                logger.info(f"  - {component}: {preview}")
+            else:
+                logger.info(f"  - {component}: Not found")
         
         return components
     
-    def _clean_text(self, text: str) -> str:
-        """Clean the OCR text for better extraction."""
-        # Remove multiple blank lines
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        
-        # Remove line numbers at start of lines
-        text = re.sub(r'^\s*\d+\s*', '', text, flags=re.MULTILINE)
-        
-        # Remove page numbering artifacts
-        text = re.sub(r'\b\d+\s*\|\s*\w+', '', text)
-        
-        # Remove headers/footers that typically appear on patent pages
-        text = re.sub(r'^US\s+\d+\s+[A-Z]\d+\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
-        text = re.sub(r'U\.S\. Patent\s+[A-Za-z0-9\.]+\s+Sheet \d+ of \d+\s+US \d+,\d+ [A-Z]\d+', '', text)
-        
-        # Handle page markers
-        text = re.sub(r'\[Page \d+\]', '', text)
-        text = re.sub(r'Page \d+\s*\n', '', text)
-        
-        # Remove common OCR artifacts
-        text = re.sub(r'[|}{~`]', '', text)
-        text = re.sub(r'\s+([.,:;!?])', r'\1', text)
-        
-        return text.strip()
-    
-    def _extract_patent_number(self, text: str) -> str:
-        """Extract the patent number."""
+    def _extract_patent_number(self, text):
+        """Extract the patent number from text."""
+        # Try primary pattern
         match = re.search(self.patterns['patent_number'], text)
         if match:
-            # Clean and format the patent number
-            number = match.group(1).replace(',', '')
-            return f"US{number}"
-        return ""
-    
-    def _extract_title(self, text: str) -> str:
-        """Extract the patent title."""
-        # Try to find title in multiple ways
+            return match.group(1).replace(',', '')
         
-        # Method 1: Look for title after (54) marker
-        match = re.search(self.patterns['title'], text, re.IGNORECASE | re.DOTALL)
+        # Try alternative pattern
+        match = re.search(self.secondary_patterns['patent_number_alt'], text)
+        if match:
+            return match.group(1).replace(',', '')
+        
+        return None
+    
+    def _extract_title(self, text):
+        """Extract the patent title from text."""
+        # Try primary pattern
+        match = re.search(self.patterns['title'], text)
         if match:
             title = match.group(1).strip()
-            # Clean up title (often split across multiple lines)
+            # Clean up the title
             title = re.sub(r'\s+', ' ', title)
             return title
-            
-        # Method 2: Look for title in first few lines (often appears near the top)
-        lines = text.split('\n')[:10]  # Check first 10 lines
-        for i, line in enumerate(lines):
-            if '(54)' in line or line.strip().startswith('54)'):
-                # Title likely in this line or next
-                title_text = line.replace('(54)', '').replace('54)', '').strip()
-                
-                # Title might continue to next line
-                j = i + 1
-                while j < len(lines) and not lines[j].strip().startswith('('):
-                    title_text += ' ' + lines[j].strip()
-                    j += 1
-                
-                return title_text.strip()
         
-        return ""
+        # Try alternative pattern
+        match = re.search(self.secondary_patterns['title_alt'], text)
+        if match:
+            title = match.group(1).strip()
+            # Clean up the title
+            title = re.sub(r'\s+', ' ', title)
+            return title
+        
+        # Try to find title at the beginning of the document
+        lines = text.split('\n')
+        for i in range(min(10, len(lines))):
+            line = lines[i].strip()
+            if len(line) > 10 and len(line) < 200 and line.isupper():
+                return line
+        
+        return None
     
-    def _extract_abstract(self, text: str) -> str:
-        """Extract the abstract."""
-        # Try different abstract patterns
-        match = re.search(self.patterns['abstract'], text, re.IGNORECASE | re.DOTALL)
+    def _extract_abstract(self, text):
+        """Extract the patent abstract from text."""
+        # Try primary pattern
+        match = re.search(self.patterns['abstract'], text, re.DOTALL)
         if match:
             abstract = match.group(1).strip()
-            # Clean up abstract
+            # Clean up the abstract
             abstract = re.sub(r'\s+', ' ', abstract)
             return abstract
-            
-        # If not found with regex, try locating by section markers
-        if '(57)' in text or 'ABSTRACT' in text.upper():
-            lines = text.split('\n')
-            for i, line in enumerate(lines):
-                if '(57)' in line or 'ABSTRACT' in line.upper():
-                    # Abstract starts here, collect until next section
-                    abstract_lines = []
-                    j = i + 1
-                    while j < len(lines) and not any(marker in lines[j].upper() for marker in 
-                                                   ['BACKGROUND', 'FIELD OF', 'DESCRIPTION', 'BRIEF', 'CLAIMS']):
-                        if lines[j].strip():  # Skip empty lines
-                            abstract_lines.append(lines[j].strip())
-                        j += 1
-                    
-                    if abstract_lines:
-                        return ' '.join(abstract_lines)
         
-        return ""
+        # Try alternative pattern
+        match = re.search(self.secondary_patterns['abstract_alt'], text, re.DOTALL)
+        if match:
+            abstract = match.group(1).strip()
+            # Clean up the abstract
+            abstract = re.sub(r'\s+', ' ', abstract)
+            return abstract
+        
+        return None
     
-    def _extract_claims(self, text: str) -> List[str]:
-        """Extract the claims section as a list of individual claims."""
-        # Find the claims section
-        claims_section = ""
-        match_start = re.search(self.patterns['claims_start'], text, re.IGNORECASE)
-        
-        if match_start:
-            start_pos = match_start.end()
-            match_end = re.search(self.patterns['claims_end'], text[start_pos:], re.IGNORECASE)
-            
-            if match_end:
-                end_pos = start_pos + match_end.start()
-                claims_section = text[start_pos:end_pos].strip()
-            else:
-                claims_section = text[start_pos:].strip()
-        
-        # If claims section not found, try another approach
-        if not claims_section:
-            lines = text.split('\n')
-            for i, line in enumerate(lines):
-                if any(claim_marker in line for claim_marker in ['What is claimed is:', 'I claim:', 'We claim:', 'Claims:']):
-                    # Claims start here, collect until next section
-                    claims_lines = []
-                    j = i + 1
-                    while j < len(lines) and not any(marker in lines[j].upper() for marker in 
-                                                   ['DETAILED DESCRIPTION', 'BACKGROUND', 'DESCRIPTION OF']):
-                        if lines[j].strip():  # Skip empty lines
-                            claims_lines.append(lines[j].strip())
-                        j += 1
-                    
-                    if claims_lines:
-                        claims_section = ' '.join(claims_lines)
-                        break
-        
-        # Parse individual claims
+    def _extract_claims(self, text):
+        """Extract the patent claims from text."""
         claims = []
-        if claims_section:
-            # Split by claim numbers
-            claim_pattern = r'(?:^|\n|\s)(\d+\.\s+.+?)(?=\n\s*\d+\.\s+|\Z)'
-            found_claims = re.findall(claim_pattern, claims_section, re.DOTALL)
-            
-            if found_claims:
-                claims = [claim.strip() for claim in found_claims]
-            else:
-                # If no numbered claims found, return the whole section
-                claims = [claims_section]
+        
+        # Find the start of claims section
+        match = re.search(self.patterns['claims_start'], text)
+        if not match:
+            return claims
+        
+        start_pos = match.end()
+        claims_text = text[start_pos:]
+        
+        # Try to find numbered claims
+        claim_matches = re.finditer(r'(?:^|\n)([0-9]+)\.\s+(.+?)(?=\n[0-9]+\.\s+|\n\s*$|$)', claims_text, re.DOTALL)
+        
+        for match in claim_matches:
+            claim_num = match.group(1)
+            claim_text = match.group(2).strip()
+            # Clean up the claim text
+            claim_text = re.sub(r'\s+', ' ', claim_text)
+            claims.append({
+                'number': int(claim_num),
+                'text': claim_text
+            })
+        
+        # If no numbered claims found, try to split by paragraphs
+        if not claims:
+            paragraphs = re.split(r'\n\s*\n', claims_text)
+            for i, para in enumerate(paragraphs[:20]):  # Limit to first 20 paragraphs
+                if len(para.strip()) > 50:  # Minimum length for a claim
+                    claims.append({
+                        'number': i + 1,
+                        'text': re.sub(r'\s+', ' ', para.strip())
+                    })
         
         return claims
     
-    def _extract_figures(self, text: str) -> List[str]:
-        """Extract figure descriptions and captions."""
+    def _extract_figures(self, text):
+        """Extract figure descriptions from text."""
         figures = []
         
         # Find all figure references
-        fig_matches = re.findall(self.patterns['figures'], text, re.MULTILINE | re.IGNORECASE)
+        fig_matches = re.finditer(self.patterns['figures'], text)
         
-        # Clean up the matches
         for match in fig_matches:
-            # Remove excessive whitespace
-            cleaned_match = re.sub(r'\s+', ' ', match).strip()
-            if cleaned_match:
-                figures.append(cleaned_match)
+            fig_text = match.group(0).strip()
+            # Clean up the figure text
+            fig_text = re.sub(r'\s+', ' ', fig_text)
+            
+            # Try to extract figure number
+            fig_num_match = re.search(r'FIG\.?\s*([0-9]+[A-Za-z]*)', fig_text)
+            if fig_num_match:
+                fig_num = fig_num_match.group(1)
+            else:
+                fig_num = f"FIGURE_{len(figures)+1}"
+            
+            figures.append({
+                'number': fig_num,
+                'text': fig_text
+            })
         
         return figures
     
-    def _extract_body_text(self, text: str) -> str:
-        """
-        Extract the main body text of the patent.
-        This typically includes background, detailed description, etc.
-        """
-        # Find start of body text (usually after abstract and before claims)
-        body_start = None
-        body_end = None
+    def _extract_body(self, text):
+        """Extract the main body text from the patent."""
+        # Try to find the start of the detailed description
+        match = re.search(self.secondary_patterns['body_start'], text)
+        if match:
+            body_start = match.start()
+            
+            # Try to find the end (usually the claims section)
+            claims_start = re.search(self.patterns['claims_start'], text[body_start:])
+            if claims_start:
+                body_end = body_start + claims_start.start()
+                body_text = text[body_start:body_end].strip()
+            else:
+                body_text = text[body_start:].strip()
+                
+            return body_text
         
-        # Try to find starting point (after abstract)
-        abstract_match = re.search(r'(?:ABSTRACT|^\(57\)\s+ABSTRACT)', text, re.IGNORECASE)
+        # Fallback: just take the middle part of the document
+        # (after abstract, before claims)
+        abstract_match = re.search(self.patterns['abstract'], text, re.DOTALL)
+        claims_match = re.search(self.patterns['claims_start'], text)
+        
+        if abstract_match and claims_match:
+            body_text = text[abstract_match.end():claims_match.start()].strip()
+            return body_text
+        
+        # Last resort: just return everything that's not the abstract or claims
         if abstract_match:
-            # Look for the next section heading after abstract
-            section_match = re.search(r'\n\s*(?:BACKGROUND|FIELD OF|SUMMARY|DETAILED DESCRIPTION)', text[abstract_match.end():], re.IGNORECASE)
-            if section_match:
-                body_start = abstract_match.end() + section_match.start()
-        
-        # Try to find ending point (before claims)
-        claims_match = re.search(self.patterns['claims_start'], text, re.IGNORECASE)
+            return text[abstract_match.end():].strip()
         if claims_match:
-            body_end = claims_match.start()
+            return text[:claims_match.start()].strip()
         
-        # Extract body text if start and end found
-        if body_start is not None and body_end is not None and body_start < body_end:
-            body_text = text[body_start:body_end].strip()
-        else:
-            # Fallback: try to find the body between known section headings
-            lines = text.split('\n')
-            body_lines = []
-            in_body = False
-            
-            for line in lines:
-                if not in_body and re.search(r'^(?:BACKGROUND|FIELD OF|SUMMARY|DETAILED DESCRIPTION)', line, re.IGNORECASE):
-                    in_body = True
-                    body_lines.append(line)
-                elif in_body and re.search(r'^(?:CLAIMS|What is claimed)', line, re.IGNORECASE):
-                    in_body = False
-                elif in_body:
-                    body_lines.append(line)
-            
-            body_text = '\n'.join(body_lines).strip()
-        
-        return body_text
+        # Couldn't identify sections, return None
+        return None
     
-    def process_patent_file(self, file_path: str) -> Dict[str, Any]:
+    def save_components(self, components, output_dir, patent_id):
         """
-        Process a patent OCR text file and extract all components.
+        Save extracted components to separate files
         
         Args:
-            file_path: Path to the patent OCR text file
-            
-        Returns:
-            Dictionary containing extracted components
+            components (dict): Extracted components
+            output_dir (str): Directory to save files
+            patent_id (str): Patent ID for filenames
         """
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-            
-            return self.extract_components(text)
-            
-        except Exception as e:
-            logger.error(f"Error processing patent file {file_path}: {str(e)}")
-            return {
-                'patent_number': '',
-                'title': '',
-                'abstract': '',
-                'claims': [],
-                'figures': [],
-                'body_text': ''
-            }
-    
-    def save_components_to_files(self, components: Dict[str, Any], output_dir: str, base_filename: str) -> None:
-        """
-        Save extracted components to separate text files.
+        # Create component directory
+        component_dir = os.path.join(output_dir, 'Components', patent_id)
+        os.makedirs(component_dir, exist_ok=True)
         
-        Args:
-            components: Dictionary of extracted components
-            output_dir: Directory to save the files
-            base_filename: Base name for the output files
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save patent info
-        with open(os.path.join(output_dir, f"{base_filename}_info.txt"), 'w', encoding='utf-8') as f:
-            f.write(f"Patent Number: {components['patent_number']}\n")
-            f.write(f"Title: {components['title']}\n\n")
-            f.write(f"Abstract:\n{components['abstract']}\n")
+        # Save info file (patent number, title, abstract)
+        info_path = os.path.join(component_dir, f"{patent_id}_info.txt")
+        with open(info_path, 'w', encoding='utf-8') as f:
+            f.write(f"Patent Number: {components['patent_number'] or 'Unknown'}\n\n")
+            f.write(f"Title: {components['title'] or 'Unknown'}\n\n")
+            f.write(f"Abstract:\n{components['abstract'] or 'Not available'}\n")
         
         # Save claims
-        with open(os.path.join(output_dir, f"{base_filename}_claims.txt"), 'w', encoding='utf-8') as f:
-            for i, claim in enumerate(components['claims'], 1):
-                f.write(f"Claim {i}:\n{claim}\n\n")
+        if components['claims']:
+            claims_path = os.path.join(component_dir, f"{patent_id}_claims.txt")
+            with open(claims_path, 'w', encoding='utf-8') as f:
+                for claim in components['claims']:
+                    f.write(f"Claim {claim['number']}:\n")
+                    f.write(f"{claim['text']}\n\n")
         
         # Save figures
-        with open(os.path.join(output_dir, f"{base_filename}_figures.txt"), 'w', encoding='utf-8') as f:
-            for i, figure in enumerate(components['figures'], 1):
-                f.write(f"Figure {i}:\n{figure}\n\n")
+        if components['figures']:
+            figures_path = os.path.join(component_dir, f"{patent_id}_figures.txt")
+            with open(figures_path, 'w', encoding='utf-8') as f:
+                for figure in components['figures']:
+                    f.write(f"Figure {figure['number']}:\n")
+                    f.write(f"{figure['text']}\n\n")
         
         # Save body text
-        with open(os.path.join(output_dir, f"{base_filename}_body.txt"), 'w', encoding='utf-8') as f:
-            f.write(components['body_text'])
+        if components['body']:
+            body_path = os.path.join(component_dir, f"{patent_id}_body.txt")
+            with open(body_path, 'w', encoding='utf-8') as f:
+                f.write(components['body'])
         
-        logger.info(f"Saved patent components to {output_dir}/{base_filename}_*.txt")
+        # Save summary file
+        summary_path = os.path.join(component_dir, f"{patent_id}_summary.txt")
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            f.write(f"Patent: {components['patent_number'] or patent_id}\n")
+            f.write(f"Title: {components['title'] or 'Unknown'}\n\n")
+            
+            f.write(f"Abstract: {len(components['abstract'] or '') > 0}\n")
+            f.write(f"Claims: {len(components['claims'])}\n")
+            f.write(f"Figures: {len(components['figures'])}\n")
+            f.write(f"Body Text: {len(components['body'] or '') > 0}\n")
+        
+        logger.info(f"Saved components for {patent_id} to {component_dir}")
 
+def process_patent_text(text_file, output_dir):
+    """
+    Process a patent text file and extract components
+    
+    Args:
+        text_file (str): Path to the text file
+        output_dir (str): Directory to save extracted components
+    
+    Returns:
+        dict: Extracted components
+    """
+    # Get patent ID from filename
+    patent_id = os.path.basename(text_file).split('.')[0]
+    
+    # Read the text file
+    with open(text_file, 'r', encoding='utf-8') as f:
+        text = f.read()
+    
+    # Extract components
+    extractor = PatentComponentExtractor()
+    components = extractor.extract_components(text, patent_id)
+    
+    # Save components
+    extractor.save_components(components, output_dir, patent_id)
+    
+    return components
 
 def main():
-    """Example usage of the PatentComponentExtractor."""
-    import sys
+    """Process patent text files in the Results directory."""
+    import argparse
     
-    if len(sys.argv) < 2:
-        print("Usage: python patent_component_extractor.py <path_to_patent_file>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Extract components from patent text files')
+    parser.add_argument('--input-dir', '-i', default='Results', help='Directory containing patent text files')
+    parser.add_argument('--output-dir', '-o', default='Results', help='Directory to save extracted components')
+    parser.add_argument('--patent', '-p', help='Process only the specified patent (filename without extension)')
+    args = parser.parse_args()
     
-    file_path = sys.argv[1]
-    output_dir = os.path.dirname(file_path)
-    base_filename = os.path.splitext(os.path.basename(file_path))[0]
+    # Ensure output directory exists
+    os.makedirs(os.path.join(args.output_dir, 'Components'), exist_ok=True)
     
-    extractor = PatentComponentExtractor()
-    components = extractor.process_patent_file(file_path)
+    # Get list of text files to process
+    if args.patent:
+        text_files = [os.path.join(args.input_dir, f"{args.patent}.txt")]
+    else:
+        text_files = [f for f in os.listdir(args.input_dir) 
+                    if f.endswith('.txt') and not f.endswith('_chunks.txt')]
+        text_files = [os.path.join(args.input_dir, f) for f in text_files]
     
-    # Print summary
-    print(f"Patent Number: {components['patent_number']}")
-    print(f"Title: {components['title']}")
-    print(f"Abstract: {components['abstract'][:100]}...")
-    print(f"Claims: {len(components['claims'])}")
-    print(f"Figures: {len(components['figures'])}")
-    print(f"Body Text: {len(components['body_text'])} characters")
+    logger.info(f"Found {len(text_files)} patent text files to process")
     
-    # Save to files
-    extractor.save_components_to_files(components, output_dir, base_filename)
+    # Process each text file
+    for text_file in text_files:
+        if os.path.exists(text_file):
+            try:
+                logger.info(f"Processing {os.path.basename(text_file)}")
+                process_patent_text(text_file, args.output_dir)
+            except Exception as e:
+                logger.error(f"Error processing {text_file}: {str(e)}")
+        else:
+            logger.warning(f"File not found: {text_file}")
+    
+    logger.info("Component extraction complete")
 
 if __name__ == "__main__":
     main() 
