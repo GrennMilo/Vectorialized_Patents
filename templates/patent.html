@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ metadata.title }} | Patent Database{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="patent-container">
+    <div class="patent-header">
+        <a href="/" class="back-button"><i class="fas fa-arrow-left"></i> Back to Search</a>
+        <h1 class="patent-title">{{ metadata.title }}</h1>
+        <div class="patent-id">Patent ID: {{ patent_id }}</div>
+        <div class="patent-actions">
+            <a href="{{ metadata.url }}" target="_blank" class="external-link-btn">
+                <i class="fas fa-external-link-alt"></i> View on Google Patents
+            </a>
+        </div>
+    </div>
+    
+    {% if images %}
+    <div class="patent-images-container">
+        <h2 class="patent-section-title">Patent Figures</h2>
+        <div class="patent-images">
+            {% for image in images %}
+            <div class="patent-image-item">
+                <a href="{{ image.url }}" data-lightbox="patent-images" data-title="Page {{ image.page }}">
+                    <img src="{{ image.url }}" alt="Patent page {{ image.page }}" class="patent-image-thumbnail">
+                </a>
+                <div class="patent-image-caption">Page {{ image.page }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="patent-content-container">
+        <h2 class="patent-section-title">Patent Content</h2>
+        <div class="patent-content-tabs">
+            <button class="tab-button active" data-tab="full-text">Full Text</button>
+            <button class="tab-button" data-tab="chunks">Text Chunks</button>
+            {% if images %}
+            <button class="tab-button" data-tab="figures">Figures</button>
+            {% endif %}
+        </div>
+        
+        <div class="patent-content-panels">
+            <div id="full-text" class="panel active">
+                <div class="patent-text">
+                    {% if content %}
+                    <pre class="patent-text-content">{{ content }}</pre>
+                    {% else %}
+                    <p class="no-content">No text content available for this patent.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div id="chunks" class="panel">
+                <div class="chunk-list">
+                    <div class="loading-chunks">
+                        <div class="spinner"></div>
+                        <p>Loading text chunks...</p>
+                    </div>
+                </div>
+            </div>
+            
+            {% if images %}
+            <div id="figures" class="panel">
+                <div class="figures-gallery">
+                    {% for image in images %}
+                    <div class="figure-item">
+                        <h3 class="figure-title">Page {{ image.page }}</h3>
+                        <div class="figure-image-container">
+                            <img src="{{ image.url }}" alt="Patent page {{ image.page }}" class="figure-image">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const panels = document.querySelectorAll('.panel');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons and panels
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                panels.forEach(panel => panel.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding panel
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+                
+                // If chunks tab is clicked, load chunks if not already loaded
+                if (tabId === 'chunks' && !window.chunksLoaded) {
+                    loadChunks();
+                }
+            });
+        });
+        
+        // Function to load text chunks
+        function loadChunks() {
+            const chunkList = document.querySelector('.chunk-list');
+            const patentId = '{{ patent_id }}';
+            
+            // Mark chunks as loading to prevent multiple loads
+            window.chunksLoaded = true;
+            
+            // Load chunks from API
+            fetch(`/api/patent/${patentId}/chunks`)
+                .then(response => response.json())
+                .then(chunks => {
+                    let chunksHtml = '';
+                    
+                    if (chunks.length > 0) {
+                        chunks.forEach(chunk => {
+                            chunksHtml += `
+                                <div class="chunk-item">
+                                    <div class="chunk-header">
+                                        <h3 class="chunk-title">Chunk ${chunk.id + 1}</h3>
+                                    </div>
+                                    <div class="chunk-text">${chunk.text}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        chunksHtml = '<p class="no-content">No chunk data available.</p>';
+                    }
+                    
+                    // Replace loading indicator with chunks
+                    chunkList.innerHTML = chunksHtml;
+                })
+                .catch(error => {
+                    console.error("Error loading chunks:", error);
+                    chunkList.innerHTML = '<p class="error-message">Error loading chunks: ' + error.message + '</p>';
+                });
+        }
+        
+        // Initialize lightbox
+        lightbox.option({
+            'resizeDuration': 200,
+            'wrapAround': true,
+            'albumLabel': 'Page %1 of %2'
+        });
+    });
+</script>
+{% endblock %} 

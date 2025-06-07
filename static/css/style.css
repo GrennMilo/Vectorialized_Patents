@@ -1,0 +1,686 @@
+/* 
+   Patent Database Search - Dark Theme
+   A minimalist dark-themed UI for patent search and exploration
+*/
+
+/* Base styles and variables */
+:root {
+    --bg-color: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #2a2a2a;
+    --text-primary: #f2f2f2;
+    --text-secondary: #b0b0b0;
+    --accent-color: #6c5ce7;
+    --accent-hover: #8075e5;
+    --danger-color: #e74c3c;
+    --success-color: #2ecc71;
+    --border-color: #333333;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --card-bg: #1e1e1e;
+    --card-hover: #262626;
+    --input-bg: #252525;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header styling */
+header {
+    background-color: var(--bg-secondary);
+    padding: 15px 0;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo a {
+    display: flex;
+    align-items: center;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.logo i {
+    margin-right: 10px;
+    color: var(--accent-color);
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+}
+
+nav li {
+    margin-left: 25px;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 5px 0;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+}
+
+.nav-link i {
+    margin-right: 5px;
+}
+
+/* Main content area */
+main {
+    flex: 1;
+    padding: 40px 0;
+}
+
+/* Footer styling */
+footer {
+    background-color: var(--bg-secondary);
+    padding: 20px 0;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: auto;
+}
+
+/* Search page styling */
+.search-container {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.search-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.search-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+}
+
+.search-form {
+    margin-bottom: 30px;
+}
+
+.search-input-container {
+    display: flex;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#search-input {
+    flex: 1;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    border: none;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.search-button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0 25px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background-color 0.2s ease;
+}
+
+.search-button:hover {
+    background-color: var(--accent-hover);
+}
+
+.search-examples {
+    margin: 30px 0;
+    color: var(--text-secondary);
+}
+
+.search-examples p {
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.search-examples ul {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    list-style: none;
+    gap: 15px;
+}
+
+.example-query {
+    display: inline-block;
+    padding: 8px 15px;
+    background-color: var(--bg-tertiary);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.example-query:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 40px 0;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid var(--bg-tertiary);
+    border-radius: 50%;
+    border-top-color: var(--accent-color);
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.hidden {
+    display: none;
+}
+
+/* Search results */
+.results-container {
+    text-align: left;
+    margin-top: 40px;
+}
+
+.results-title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: center;
+}
+
+.results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.result-item {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px var(--shadow-color);
+    background-color: var(--card-hover);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.result-title {
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.result-title a {
+    color: var(--text-primary);
+}
+
+.result-title a:hover {
+    color: var(--accent-color);
+}
+
+.result-score {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.result-id {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.result-text {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.result-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.view-patent-btn, .external-link-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    background-color: var(--bg-tertiary);
+    border-radius: 5px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.view-patent-btn:hover, .external-link-btn:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.view-patent-btn i, .external-link-btn i {
+    margin-right: 5px;
+}
+
+.error-message {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.no-results {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+/* Patent detail page styling */
+.patent-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.patent-header {
+    margin-bottom: 30px;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.back-button i {
+    margin-right: 5px;
+}
+
+.patent-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.patent-id {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.patent-actions {
+    margin-top: 15px;
+}
+
+.patent-section-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Patent images gallery */
+.patent-images-container {
+    margin-bottom: 40px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+.patent-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.patent-image-item {
+    width: 170px;
+    margin-bottom: 15px;
+    transition: transform 0.2s ease;
+}
+
+.patent-image-item:hover {
+    transform: translateY(-5px);
+}
+
+.patent-image-thumbnail {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.patent-image-thumbnail:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    transform: scale(1.02);
+}
+
+.patent-image-caption {
+    text-align: center;
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Lightbox customization */
+.lb-outerContainer {
+    background-color: var(--bg-secondary) !important;
+}
+
+.lb-dataContainer {
+    background-color: var(--bg-color) !important;
+}
+
+.lb-data .lb-caption {
+    color: var(--text-primary) !important;
+}
+
+.lb-data .lb-number {
+    color: var(--text-secondary) !important;
+}
+
+.lb-nav a.lb-prev, .lb-nav a.lb-next {
+    opacity: 0.8 !important;
+}
+
+/* Patent content tabs and panels */
+.patent-content-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px var(--shadow-color);
+}
+
+.patent-content-tabs {
+    display: flex;
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-button:hover {
+    color: var(--text-primary);
+}
+
+.tab-button.active {
+    color: var(--text-primary);
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: var(--accent-color);
+}
+
+.panel {
+    display: none;
+    padding: 25px;
+}
+
+.panel.active {
+    display: block;
+}
+
+.patent-text {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.patent-text-content {
+    white-space: pre-wrap;
+    font-family: 'Inter', monospace;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    padding: 10px;
+    background: none;
+    border: none;
+}
+
+.no-content {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-secondary);
+}
+
+.loading-chunks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 0;
+}
+
+.chunk-item {
+    margin-bottom: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chunk-item:last-child {
+    border-bottom: none;
+}
+
+.chunk-header {
+    margin-bottom: 15px;
+}
+
+.chunk-title {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.chunk-text {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Figures tab styling */
+.figures-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.figure-item {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 30px;
+}
+
+.figure-item:last-child {
+    border-bottom: none;
+}
+
+.figure-title {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.figure-image-container {
+    display: flex;
+    justify-content: center;
+}
+
+.figure-image {
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Tooltip styling */
+.tooltip {
+    position: absolute;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 0 5px 5px;
+    border-style: solid;
+    border-color: transparent transparent var(--bg-tertiary) transparent;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .search-title {
+        font-size: 2rem;
+    }
+    
+    .result-header {
+        flex-direction: column;
+    }
+    
+    .result-score {
+        margin-top: 10px;
+    }
+    
+    .result-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .view-patent-btn, .external-link-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .patent-title {
+        font-size: 1.5rem;
+    }
+    
+    .patent-images {
+        justify-content: space-around;
+    }
+    
+    .patent-image-item {
+        width: 120px;
+    }
+    
+    .patent-image-thumbnail {
+        height: 160px;
+    }
+} 
